@@ -1,0 +1,103 @@
+#include <stack>
+
+#include <Parser.hpp>
+
+#include <Scanner.hpp>
+#include <Token.hpp>
+
+Parser::Parser(std::string_view expression)
+    : suffix_expression{build_suffix_expression(expression)}
+{
+    // Empty
+}
+
+long Parser::evaluate_integer(ArithmNode *node) noexcept
+{
+    return static_cast<long>(std::stoi(K(node).value));
+}
+
+long Parser::evaluate_addition(ArithmNode *node) noexcept
+{
+    return std::dynamic_pointer_cast<ArithmNode>(L(node))->eval() + std::dynamic_pointer_cast<ArithmNode>(R(node))->eval();
+}
+
+long Parser::evaluate_subtraction(ArithmNode *node) noexcept
+{
+    return std::dynamic_pointer_cast<ArithmNode>(L(node))->eval() - std::dynamic_pointer_cast<ArithmNode>(R(node))->eval();
+}
+
+long Parser::evaluate_multiplication(ArithmNode *node) noexcept
+{
+    return std::dynamic_pointer_cast<ArithmNode>(L(node))->eval() * std::dynamic_pointer_cast<ArithmNode>(R(node))->eval();
+}
+
+long Parser::evaluate_division(ArithmNode *node)
+{
+    if (std::dynamic_pointer_cast<ArithmNode>(R(node))->eval() == 0)
+    {
+        throw std::runtime_error{"Division by zero"};
+    }
+    return std::dynamic_pointer_cast<ArithmNode>(L(node))->eval() / std::dynamic_pointer_cast<ArithmNode>(R(node))->eval();
+}
+
+long Parser::evaluate_module(ArithmNode *node)
+{
+    if (std::dynamic_pointer_cast<ArithmNode>(R(node))->eval() == 0)
+    {
+        throw std::runtime_error{"Division by zero"};
+    }
+    return std::dynamic_pointer_cast<ArithmNode>(L(node))->eval() % std::dynamic_pointer_cast<ArithmNode>(R(node))->eval();
+}
+
+bool Parser::validate_parenthesis(std::string_view expression) noexcept
+{
+    int errors = 0;
+    int opens = 0;
+    for (auto c : expression)
+    {
+        if (c == '(')
+        {
+            ++opens;
+        }
+        if (c == ')')
+        {
+            if (opens > 0)
+            {
+                --opens;
+            }
+            else
+            {
+                ++errors;
+            }
+        }
+    }
+
+    errors += opens;
+    return errors == 0 ? true : false;
+}
+
+std::vector<Token> Parser::Parser::build_suffix_expression(std::string_view expression)
+{
+    if (!validate_parenthesis(expression))
+    {
+        throw std::runtime_error{"Parenthesis don't match"};
+    }
+
+    Scanner scanner{expression};
+    PrecedenceTable precedence{
+        {"(", 0},
+        {"+", 1},
+        {"-", 1},
+        {"*", 2},
+        {"/", 2},
+        {"%", 2}};
+
+    std::vector<Token> suffix;
+
+    return suffix;
+}
+
+std::shared_ptr<ArithmNode> Parser::build_arithmetic_tree() const
+{
+    return nullptr;
+}
