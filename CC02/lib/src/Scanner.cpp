@@ -20,22 +20,29 @@ Token Scanner::get_next_token() noexcept
     {
         return std::make_pair(TokenType::EoF, "");
     }
-    
+
     if (std::isdigit(c))
     {
         this->unget();
         return this->build_integer_token();
     }
-    
+
     switch (c)
     {
-        case '+': return std::make_pair(TokenType::Add, "+");
-        case '-': return std::make_pair(TokenType::Sub, "-");
-        case '*': return std::make_pair(TokenType::Mul, "*");
-        case '/': return std::make_pair(TokenType::Div, "/");
-        case '%': return std::make_pair(TokenType::Mod, "/");
-        case '(': return std::make_pair(TokenType::LParen, "(");
-        case ')': return std::make_pair(TokenType::RParen, ")");
+    case '+':
+        return std::make_pair(TokenType::Add, "+");
+    case '-':
+        return std::make_pair(TokenType::Sub, "-");
+    case '*':
+        return std::make_pair(TokenType::Mul, "*");
+    case '/':
+        return std::make_pair(TokenType::Div, "/");
+    case '%':
+        return std::make_pair(TokenType::Mod, "%");
+    case '(':
+        return std::make_pair(TokenType::LParen, "(");
+    case ')':
+        return std::make_pair(TokenType::RParen, ")");
     }
 
     return std::make_pair(TokenType::Unknown, "");
@@ -44,7 +51,7 @@ Token Scanner::get_next_token() noexcept
 Token Scanner::build_integer_token() noexcept
 {
     std::string value{};
-    
+
     char c = this->getc();
 
     while (std::isdigit(c))

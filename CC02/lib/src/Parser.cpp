@@ -84,6 +84,7 @@ std::vector<Token> Parser::Parser::build_suffix_expression(std::string_view expr
     }
 
     Scanner scanner{expression};
+
     PrecedenceTable precedence{
         {"(", 0},
         {"+", 1},
@@ -93,11 +94,68 @@ std::vector<Token> Parser::Parser::build_suffix_expression(std::string_view expr
         {"%", 2}};
 
     std::vector<Token> suffix;
+    std::stack<Token> operatorStack;
+
+    // std::cout << to_string(token.first) << ": " << token.second << std::endl;
+
+    for (Token token; (token = scanner.get_next_token()).first != TokenType::EoF;)
+    {
+        if (token.first == TokenType::Int)
+        {
+            suffix.push_back(token);
+        }
+        else if (token.first == TokenType::LParen)
+        {
+            operatorStack.push(token);
+        }
+        else if (token.first == TokenType::RParen)
+        {
+            while (operatorStack.top().first != TokenType::LParen)
+            {
+                suffix.push_back(operatorStack.top());
+                operatorStack.pop();
+            }
+            operatorStack.pop();
+        }
+        else
+        {
+            if (token.first != TokenType::Unknown)
+            {
+                while (!operatorStack.empty() && precedence.lookup(operatorStack.top().second) >= precedence.lookup(token.second))
+                {
+                    suffix.push_back(operatorStack.top());
+                    operatorStack.pop();
+                }
+                operatorStack.push(token);
+            }
+        }
+    }
+
+    while (!operatorStack.empty())
+    {
+        suffix.push_back(operatorStack.top());
+        operatorStack.pop();
+    }
 
     return suffix;
 }
 
 std::shared_ptr<ArithmNode> Parser::build_arithmetic_tree() const
 {
+    if (suffix_expression.empty())
+    {
+        return nullptr;
+    }
+
+    std::stack<std::shared_ptr<ArithmNode>> nodeStack;
+
+    for (auto token : suffix_expression)
+    {
+        if (token.first == TokenType::Int)
+        {
+            nodeStack.push(std::make_shared<ArithmNode>(token.second));
+        }
+    }
+
     return nullptr;
 }
