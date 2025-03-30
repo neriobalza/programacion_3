@@ -117,17 +117,14 @@ std::vector<Token> Parser::Parser::build_suffix_expression(std::string_view expr
             }
             operatorStack.pop();
         }
-        else
+        else if (token.first != TokenType::Unknown)
         {
-            if (token.first != TokenType::Unknown)
+            while (!operatorStack.empty() && precedence.lookup(operatorStack.top().second) >= precedence.lookup(token.second))
             {
-                while (!operatorStack.empty() && precedence.lookup(operatorStack.top().second) >= precedence.lookup(token.second))
-                {
-                    suffix.push_back(operatorStack.top());
-                    operatorStack.pop();
-                }
-                operatorStack.push(token);
+                suffix.push_back(operatorStack.top());
+                operatorStack.pop();
             }
+            operatorStack.push(token);
         }
     }
 
