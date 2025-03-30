@@ -1,0 +1,11 @@
+# Archivos de salida de compilación
+*.o
+*.out
+*.exe
+
+# Directorios de compilación
+**/build/
+**/bin/
+**/obj/
+
+**/.DS_Store
