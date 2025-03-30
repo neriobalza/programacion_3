@@ -73,7 +73,7 @@ bool Parser::validate_parenthesis(std::string_view expression) noexcept
     }
 
     errors += opens;
-    return errors == 0 ? true : false;
+    return errors == 0;
 }
 
 std::vector<Token> Parser::Parser::build_suffix_expression(std::string_view expression)
@@ -94,9 +94,7 @@ std::vector<Token> Parser::Parser::build_suffix_expression(std::string_view expr
         {"%", 2}};
 
     std::vector<Token> suffix;
-    std::stack<Token> operatorStack;
-
-    // std::cout << to_string(token.first) << ": " << token.second << std::endl;
+    std::stack<Token> operator_stack;
 
     for (Token token; (token = scanner.get_next_token()).first != TokenType::EoF;)
     {
@@ -106,32 +104,32 @@ std::vector<Token> Parser::Parser::build_suffix_expression(std::string_view expr
         }
         else if (token.first == TokenType::LParen)
         {
-            operatorStack.push(token);
+            operator_stack.push(token);
         }
         else if (token.first == TokenType::RParen)
         {
-            while (operatorStack.top().first != TokenType::LParen)
+            while (operator_stack.top().first != TokenType::LParen)
             {
-                suffix.push_back(operatorStack.top());
-                operatorStack.pop();
+                suffix.push_back(operator_stack.top());
+                operator_stack.pop();
             }
-            operatorStack.pop();
+            operator_stack.pop();
         }
         else if (token.first != TokenType::Unknown)
         {
-            while (!operatorStack.empty() && precedence.lookup(operatorStack.top().second) >= precedence.lookup(token.second))
+            while (!operator_stack.empty() && precedence.lookup(operator_stack.top().second) >= precedence.lookup(token.second))
             {
-                suffix.push_back(operatorStack.top());
-                operatorStack.pop();
+                suffix.push_back(operator_stack.top());
+                operator_stack.pop();
             }
-            operatorStack.push(token);
+            operator_stack.push(token);
         }
     }
 
-    while (!operatorStack.empty())
+    while (!operator_stack.empty())
     {
-        suffix.push_back(operatorStack.top());
-        operatorStack.pop();
+        suffix.push_back(operator_stack.top());
+        operator_stack.pop();
     }
 
     return suffix;
@@ -144,56 +142,56 @@ std::shared_ptr<ArithmNode> Parser::build_arithmetic_tree() const
         return nullptr;
     }
 
-    std::stack<std::shared_ptr<ArithmNode>> nodeStack;
+    std::stack<std::shared_ptr<ArithmNode>> node_stack;
 
     for (auto token : suffix_expression)
     {
         if (token.first == TokenType::Int)
         {
-            nodeStack.push(std::make_shared<ArithmNode>(make_key(token.second, evaluate_integer)));
+            node_stack.push(std::make_shared<ArithmNode>(make_key(token.second, evaluate_integer)));
         }
         else
         {
-            if (nodeStack.size() < 2)
+            if (node_stack.size() < 2)
             {
                 throw std::runtime_error{"Invalid Expression"};
             }
 
-            std::shared_ptr<ArithmNode> operatorNode;
-            std::shared_ptr<ArithmNode> rightChildren = nodeStack.top();
-            nodeStack.pop();
-            std::shared_ptr<ArithmNode> leftChildren = nodeStack.top();
-            nodeStack.pop();
+            std::shared_ptr<ArithmNode> operator_node;
+            std::shared_ptr<ArithmNode> right_children = node_stack.top();
+            node_stack.pop();
+            std::shared_ptr<ArithmNode> left_children = node_stack.top();
+            node_stack.pop();
 
             switch (token.first)
             {
             case TokenType::Add:
-                operatorNode = std::make_shared<ArithmNode>(make_key(token.second, evaluate_addition), leftChildren, rightChildren);
+                operator_node = std::make_shared<ArithmNode>(make_key(token.second, evaluate_addition), left_children, right_children);
                 break;
             case TokenType::Sub:
-                operatorNode = std::make_shared<ArithmNode>(make_key(token.second, evaluate_subtraction), leftChildren, rightChildren);
+                operator_node = std::make_shared<ArithmNode>(make_key(token.second, evaluate_subtraction), left_children, right_children);
                 break;
             case TokenType::Mul:
-                operatorNode = std::make_shared<ArithmNode>(make_key(token.second, evaluate_multiplication), leftChildren, rightChildren);
+                operator_node = std::make_shared<ArithmNode>(make_key(token.second, evaluate_multiplication), left_children, right_children);
                 break;
             case TokenType::Div:
-                operatorNode = std::make_shared<ArithmNode>(make_key(token.second, evaluate_division), leftChildren, rightChildren);
+                operator_node = std::make_shared<ArithmNode>(make_key(token.second, evaluate_division), left_children, right_children);
                 break;
             case TokenType::Mod:
-                operatorNode = std::make_shared<ArithmNode>(make_key(token.second, evaluate_module), leftChildren, rightChildren);
+                operator_node = std::make_shared<ArithmNode>(make_key(token.second, evaluate_module), left_children, right_children);
                 break;
             default:
                 break;
             }
 
-            nodeStack.push(operatorNode);
+            node_stack.push(operator_node);
         }
     }
 
-    if (nodeStack.size() != 1)
+    if (node_stack.size() != 1)
     {
         throw std::runtime_error{"Invalid Expression"};
     }
 
-    return nodeStack.top();
+    return node_stack.top();
 }
