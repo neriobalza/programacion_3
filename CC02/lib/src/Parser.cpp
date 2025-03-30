@@ -153,9 +153,50 @@ std::shared_ptr<ArithmNode> Parser::build_arithmetic_tree() const
     {
         if (token.first == TokenType::Int)
         {
-            nodeStack.push(std::make_shared<ArithmNode>(token.second));
+            nodeStack.push(std::make_shared<ArithmNode>(make_key(token.second, evaluate_integer)));
+        }
+        else
+        {
+            if (nodeStack.size() < 2)
+            {
+                throw std::runtime_error{"Invalid Expression"};
+            }
+
+            std::shared_ptr<ArithmNode> operatorNode;
+            std::shared_ptr<ArithmNode> rightChildren = nodeStack.top();
+            nodeStack.pop();
+            std::shared_ptr<ArithmNode> leftChildren = nodeStack.top();
+            nodeStack.pop();
+
+            switch (token.first)
+            {
+            case TokenType::Add:
+                operatorNode = std::make_shared<ArithmNode>(make_key(token.second, evaluate_addition), leftChildren, rightChildren);
+                break;
+            case TokenType::Sub:
+                operatorNode = std::make_shared<ArithmNode>(make_key(token.second, evaluate_subtraction), leftChildren, rightChildren);
+                break;
+            case TokenType::Mul:
+                operatorNode = std::make_shared<ArithmNode>(make_key(token.second, evaluate_multiplication), leftChildren, rightChildren);
+                break;
+            case TokenType::Div:
+                operatorNode = std::make_shared<ArithmNode>(make_key(token.second, evaluate_division), leftChildren, rightChildren);
+                break;
+            case TokenType::Mod:
+                operatorNode = std::make_shared<ArithmNode>(make_key(token.second, evaluate_module), leftChildren, rightChildren);
+                break;
+            default:
+                break;
+            }
+
+            nodeStack.push(operatorNode);
         }
     }
 
-    return nullptr;
+    if (nodeStack.size() != 1)
+    {
+        throw std::runtime_error{"Invalid Expression"};
+    }
+
+    return nodeStack.top();
 }
