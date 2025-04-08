@@ -4,8 +4,11 @@
 *.exe
 
 # Directorios de compilación
-**/build/
-**/bin/
-**/obj/
+**/build/*
+**/bin/*
+**/obj/*
+
+!**/lib/obj/.gitkeep
+!**/test/bin/.gitkeep
 
 **/.DS_Store
