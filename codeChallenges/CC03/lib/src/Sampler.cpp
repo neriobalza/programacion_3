@@ -1,6 +1,6 @@
 /**
-    @author:
-    @id:
+    @author: Nerio Balza
+    @id: 27777348
 */
 
 #include <Sampler.hpp>

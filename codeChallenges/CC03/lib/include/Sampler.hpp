@@ -45,4 +45,5 @@ public:
 
 private:
     // Private attributes and method signatures here
+    std::vector<long> samples_vec;
 };
