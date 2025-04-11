@@ -6,6 +6,7 @@
 #include <Sampler.hpp>
 #include <numeric>
 #include <cmath>
+#include <algorithm>
 
 Sampler::Sampler() noexcept
 {
