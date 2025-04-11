@@ -4,9 +4,6 @@
 */
 
 #include <Sampler.hpp>
-#include <numeric>
-#include <cmath>
-#include <algorithm>
 
 Sampler::Sampler() noexcept
 {
@@ -22,7 +19,7 @@ Sampler::Sampler(const std::vector<long> &samples) noexcept
     }
 }
 
-Sampler::Sampler(const Sampler &sampler) noexcept : samples_vec(sampler.samples_vec), sorted(sampler.sorted)
+Sampler::Sampler(const Sampler &sampler) noexcept : samples(sampler.samples), sorted(sampler.sorted)
 {
 }
 
@@ -45,7 +42,7 @@ void Sampler::swap(Sampler &sampler) noexcept
 
 size_t Sampler::size() const noexcept
 {
-    return samples_vec.size();
+    return samples.size();
 }
 
 double Sampler::mean() const
@@ -55,7 +52,7 @@ double Sampler::mean() const
         throw std::length_error("empty sampler");
     }
 
-    double x = std::accumulate(samples_vec.begin(), samples_vec.end(), 0, [](long acc, long sample)
+    double x = std::accumulate(samples.begin(), samples.end(), 0, [](long acc, long sample)
                                { return acc + sample; });
 
     return static_cast<double>(x / size());
@@ -64,25 +61,18 @@ double Sampler::mean() const
 double Sampler::variance() const
 {
     double x = mean();
-    double o = std::accumulate(samples_vec.begin(), samples_vec.end(), 0.0, [x](double acc, long sample)
+    double o = std::accumulate(samples.begin(), samples.end(), 0.0, [x](double acc, long sample)
                                { return acc + pow((sample - x), 2.0); });
     return o / size();
 }
 
 void Sampler::add_sample(long sample) noexcept
 {
-    if (samples_vec.empty())
-    {
-        samples_vec.push_back(sample);
-        sorted = true;
-        return;
-    }
-
-    if (sorted && samples_vec[size() - 1] > sample)
+    if (!samples.empty() && sorted && samples[size() - 1] > sample)
     {
         sorted = false;
     }
-    samples_vec.push_back(sample);
+    samples.push_back(sample);
 }
 
 void Sampler::add_sample(std::istream &in) noexcept
@@ -101,19 +91,15 @@ long Sampler::get_sample(size_t i)
         throw std::out_of_range("index out of range");
     }
 
-    std::sort(samples_vec.begin(), samples_vec.end());
+    sort_samples();
 
-    return samples_vec[i];
+    return samples[i];
 }
 
 std::vector<long> Sampler::list() noexcept
 {
-    if (!sorted)
-    {
-        std::sort(samples_vec.begin(), samples_vec.end());
-        sorted = true;
-    }
-    return samples_vec;
+    sort_samples();
+    return samples;
 }
 
 BasicStats Sampler::stats()
@@ -122,17 +108,14 @@ BasicStats Sampler::stats()
     {
         throw std::length_error("empty sampler");
     }
-    if (!sorted)
-    {
-        std::sort(samples_vec.begin(), samples_vec.end());
-        sorted = true;
-    }
 
-    double q1 = samples_vec[size() / 4];
-    double q2 = size() % 2 == 0 ? (samples_vec[size() / 2] + samples_vec[(size() / 2) - 1]) / 2 : samples_vec[size() / 2];
-    double q3 = samples_vec[(size() * 3) / 4];
+    sort_samples();
 
-    return BasicStats{samples_vec[0], samples_vec[size() - 1], mean(), variance(), q1, q2, q3, size()};
+    double q1 = samples[size() / 4];
+    double q2 = size() % 2 == 0 ? (samples[size() / 2] + samples[(size() / 2) - 1]) / 2 : samples[size() / 2];
+    double q3 = samples[(size() * 3) / 4];
+
+    return BasicStats{samples[0], samples[size() - 1], mean(), variance(), q1, q2, q3, size()};
 }
 
 std::vector<long> Sampler::get_by_position_range(size_t l, size_t r)
@@ -145,18 +128,14 @@ std::vector<long> Sampler::get_by_position_range(size_t l, size_t r)
     {
         throw std::out_of_range("index out of range");
     }
-    if (!sorted)
-    {
-        std::sort(samples_vec.begin(), samples_vec.end());
-        sorted = true;
-    }
+    sort_samples();
 
     if (l == r)
     {
-        return std::vector<long>{samples_vec[l]};
+        return vector<long>{samples[l]};
     }
 
-    return std::vector<long>(samples_vec.begin() + l, samples_vec.begin() + r);
+    return vector<long>(samples.begin() + l, samples.begin() + r);
 }
 
 std::vector<long> Sampler::get_by_key_range(long sl, long sr)
@@ -166,30 +145,29 @@ std::vector<long> Sampler::get_by_key_range(long sl, long sr)
         throw std::invalid_argument("crossed keys");
     }
 
+    sort_samples();
+
     long sli = binary_search(sl, 0, size() - 1);
+    long sli_delete = (sli == 0 && samples[sli] != sl) ? sli : sli + 1;
     long sri = binary_search(sr, 0, size() - 1);
-    std::vector<long> range = std::vector<long>(samples_vec.begin() + sli + 1, samples_vec.begin() + sri);
-    range.push_back(samples_vec[sri]);
+
+    vector<long> range = vector<long>(samples.begin() + sli_delete, samples.begin() + (sri + 1));
 
     return range;
 }
 
 std::vector<SPair> Sampler::get_by_keys(const std::vector<long> &keys) noexcept
 {
-    if (!sorted)
-    {
-        std::sort(samples_vec.begin(), samples_vec.end());
-        sorted = true;
-    }
+    sort_samples();
 
-    std::vector<long> copy_keys(keys);
+    vector<long> copy_keys(keys);
     std::sort(copy_keys.begin(), copy_keys.end());
-    std::vector<SPair> spair_vec;
+    vector<SPair> spair_vec;
 
     for (long sample : copy_keys)
     {
         long pos = binary_search(sample, 0, size() - 1);
-        spair_vec.push_back(std::make_tuple(sample, samples_vec[pos] == sample ? pos : -1));
+        spair_vec.push_back(SPair(sample, samples[pos] == sample ? pos : -1));
     }
 
     return spair_vec;
@@ -197,46 +175,13 @@ std::vector<SPair> Sampler::get_by_keys(const std::vector<long> &keys) noexcept
 
 Sampler &Sampler::cut_by_key_range(long sl, long sr)
 {
-    if (sl > sr)
-    {
-        throw std::invalid_argument("crossed key");
-    }
-
-    if (!sorted)
-    {
-        std::sort(samples_vec.begin(), samples_vec.end());
-        sorted = true;
-    }
-
-    long sli = binary_search(sl, 0, size() - 1);
-    long sli_delete = samples_vec[sli] == sl ? sli + 1 : sli;
-    samples_vec.erase(samples_vec.begin(), samples_vec.begin() + sli_delete);
-
-    long sri = binary_search(sr, 0, size() - 1);
-    samples_vec.erase(samples_vec.begin() + sri + 1, samples_vec.end());
+    samples = get_by_key_range(sl, sr);
 
     return *this;
 }
 
 Sampler &Sampler::cut_by_position_range(size_t l, size_t r)
 {
-    if (l > r)
-    {
-        throw std::invalid_argument("crossed key");
-    }
-
-    if (l > size() || r > size())
-    {
-        throw std::out_of_range("index out of range");
-    }
-
-    if (!sorted)
-    {
-        std::sort(samples_vec.begin(), samples_vec.end());
-        sorted = true;
-    }
-
-    samples_vec.erase(samples_vec.begin(), samples_vec.begin() + l);
-    samples_vec.erase(samples_vec.begin() + (r - l), samples_vec.end());
+    samples = get_by_position_range(l, r);
     return *this;
 }
