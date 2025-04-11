@@ -48,7 +48,7 @@ void test() noexcept
 
     // Prueba de dejar en sampler, las claves entre dos rangos
     assert_equal(s1.cut_by_key_range(4, 11).list(), {7, 9, 11});
-    assert_equal(s1.cut_by_key_range(6, 13).list(), {7, 9, 11});
+    assert_equal(s1.cut_by_key_range(6, 20).list(), {7, 9, 11});
 
     // Prueba de dejar en sampler, las claves entre dos rangos de posiciones
     assert_equal(s2.cut_by_position_range(2, 5).list(), {4, 7, 9});

@@ -51,7 +51,7 @@ private:
     long binary_search (long& x, int l, int r) {
         const int m = (l + r)/ 2;
         if(l > r){
-            return -1;
+            return m;
         }
 
         if(x< samples_vec[m] ){
