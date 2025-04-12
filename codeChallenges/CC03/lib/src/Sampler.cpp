@@ -61,8 +61,8 @@ double Sampler::mean() const
 double Sampler::variance() const
 {
     double x = mean();
-    double o = std::accumulate(samples.begin(), samples.end(), 0.0, [x](double acc, long sample)
-                               { return acc + pow((sample - x), 2.0); });
+    long double o = std::accumulate(samples.begin(), samples.end(), 0.0, [x](long double acc, long sample)
+                                    { return acc + pow((sample - x), 2.0); });
     return o / size();
 }
 
@@ -112,7 +112,7 @@ BasicStats Sampler::stats()
     sort_samples();
 
     double q1 = samples[size() / 4];
-    double q2 = size() % 2 == 0 ? (samples[size() / 2] + samples[(size() / 2) - 1]) / 2 : samples[size() / 2];
+    double q2 = size() % 2 == 0 ? (samples[size() / 2.0] + samples[(size() / 2.0) - 1.0]) / 2.0 : samples[size() / 2.0];
     double q3 = samples[(size() * 3) / 4];
 
     return BasicStats{samples[0], samples[size() - 1], mean(), variance(), q1, q2, q3, size()};
@@ -147,34 +147,19 @@ std::vector<long> Sampler::get_by_key_range(long sl, long sr)
 
     sort_samples();
 
-    long sli = binary_search(sl, 0, size() - 1);
-    long sli_delete = (sli == 0 && samples[sli] != sl) ? sli : sli + 1;
-    long sri = binary_search(sr, 0, size() - 1);
+    auto sli = std::upper_bound(samples.begin(), samples.end(), sl);
+    auto sri = std::upper_bound(sli, samples.end(), sr);
 
-    vector<long> range = vector<long>(samples.begin() + sli_delete, samples.begin() + (sri + 1));
-
-    return range;
-}
-
-std::vector<SPair> Sampler::get_by_keys(const std::vector<long> &keys) noexcept
-{
-    sort_samples();
-
-    vector<long> copy_keys(keys);
-    std::sort(copy_keys.begin(), copy_keys.end());
-    vector<SPair> spair_vec;
-
-    for (long sample : copy_keys)
-    {
-        long pos = binary_search(sample, 0, size() - 1);
-        spair_vec.push_back(SPair(sample, samples[pos] == sample ? pos : -1));
-    }
-
-    return spair_vec;
+    return vector<long>(sli, sri);
 }
 
 Sampler &Sampler::cut_by_key_range(long sl, long sr)
 {
+    if (sl > sr)
+    {
+        throw std::invalid_argument("crossed keys");
+    }
+
     samples = get_by_key_range(sl, sr);
 
     return *this;
@@ -182,6 +167,14 @@ Sampler &Sampler::cut_by_key_range(long sl, long sr)
 
 Sampler &Sampler::cut_by_position_range(size_t l, size_t r)
 {
+    if (l > r)
+    {
+        throw std::invalid_argument("crossed range");
+    }
+    if (l > size() || r > size())
+    {
+        throw std::out_of_range("index out of range");
+    }
     samples = get_by_position_range(l, r);
     return *this;
 }
